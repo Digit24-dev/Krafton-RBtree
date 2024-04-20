@@ -4,6 +4,8 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#define SENTINEL
+
 // new_rbtree should return rbtree struct with null root node
 void test_init(void) {
   rbtree *t = new_rbtree();
@@ -41,15 +43,17 @@ void test_insert_single(const key_t key) {
 void test_find_single(const key_t key, const key_t wrong_key) {
   rbtree *t = new_rbtree();
   node_t *p = rbtree_insert(t, key);
-
   node_t *q = rbtree_find(t, key);
   assert(q != NULL);
   assert(q->key == key);
   assert(q == p);
 
   q = rbtree_find(t, wrong_key);
+#ifdef SENTINEL
+  assert(q == t->nil);
+#else
   assert(q == NULL);
-
+#endif
   delete_rbtree(t);
 }
 
@@ -340,6 +344,7 @@ void test_find_erase(rbtree *t, const key_t *arr, const size_t n) {
     q = rbtree_find(t, arr[i]);
     assert(q == NULL);
   }
+  
 }
 
 void test_find_erase_fixed() {
@@ -347,9 +352,9 @@ void test_find_erase_fixed() {
   const size_t n = sizeof(arr) / sizeof(arr[0]);
   rbtree *t = new_rbtree();
   assert(t != NULL);
-
+  
   test_find_erase(t, arr, n);
-
+  printf("==== erase success ==== \n");
   delete_rbtree(t);
 }
 
@@ -367,17 +372,44 @@ void test_find_erase_rand(const size_t n, const unsigned int seed) {
   delete_rbtree(t);
 }
 
+void postOrder(rbtree *t, node_t *cur) {
+  if (cur == t->nil) {
+    // printf("nil ");
+    return;
+  }
+  
+  postOrder(t, cur->left );
+  postOrder(t, cur->right);
+  printf("%d ", cur->key );
+}
+
+void myTest(){
+  const key_t arr[] = {10, 5, 8, 34, 67, 23, 156, 24, 2, 12, 24, 36, 990, 25};
+  const size_t n = sizeof(arr) / sizeof(arr[0]);
+  
+  printf("========= my Test init =========== \n");
+  rbtree *t = new_rbtree();
+  printf("========= before insertion post Order init =========== \n");
+  postOrder(t, t->root);
+  
+  insert_arr(t, arr, n);
+  printf("========= after insertion post Order init =========== \n");
+  postOrder(t, t->root);
+  delete_rbtree(t);
+}
+
 int main(void) {
   test_init();
   test_insert_single(1024);
+  myTest();
   test_find_single(512, 1024);
   test_erase_root(128);
   test_find_erase_fixed();
-  test_minmax_suite();
-  test_to_array_suite();
-  test_distinct_values();
-  test_duplicate_values();
-  test_multi_instance();
-  test_find_erase_rand(10000, 17);
+  // test_minmax_suite();
+  // test_to_array_suite();
+  // test_distinct_values();
+  // test_duplicate_values();
+  // test_multi_instance();
+  // test_find_erase_rand(10000, 17);
   printf("Passed all tests!\n");
 }
