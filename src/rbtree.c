@@ -9,14 +9,15 @@ rbtree *new_rbtree(void) {
   p->nil = (node_t*)calloc(1, sizeof(node_t));
   p->root = p->nil;
   p->nil->color = RBTREE_BLACK;
+  p->nil->left = p->nil->right;
+  p->nil->right = p->nil->left;
 
   return p;
 }
 
 void postOrderDeletion(rbtree *t, node_t *cur) {
-  if (cur == t->nil) {
+  if (cur == t->nil)
     return;
-  }
   
   postOrderDeletion(t, cur->left );
   postOrderDeletion(t, cur->right);
@@ -36,26 +37,38 @@ void left_rotate(rbtree *t, node_t *x) {
   x->right = y->left;
   if (x->right != t->nil) 
     y->left->parent = x;
+
+  y->parent = x->parent;
+
+  if (x->parent == t->nil)
+    t->root = y;
   else if (x == x->parent->left)
     x->parent->left = y;
   else
     x->parent->right = y;
+
   y->left = x;
   x->parent = y;
 }
 
 void right_rotate(rbtree *t, node_t *x) {
-  node_t *y = x->parent;
+  node_t *y = x->left;
   
-  y->left = x->right;
-  if (y->left != t->nil)
-    x->right->parent = y;
-  else if (y == y->parent->left)
-    y->parent->left = x;
+  x->left = y->right;
+  if (y->right != t->nil) 
+    y->right->parent = x;
+
+  y->parent = x->parent;
+
+  if (x->parent == t->nil)
+    t->root = y;
+  else if (x == x->parent->right)
+    x->parent->right = y;
   else
-    y->parent->right = x;
-  x->right = y;
-  y->parent = x;
+    x->parent->left = y;
+
+  y->right = x;
+  x->parent = y;
 }
 
 void insert_fixup(rbtree *t, node_t *z) {
@@ -73,15 +86,16 @@ void insert_fixup(rbtree *t, node_t *z) {
         z = z->parent->parent;
       }
       // if z is parent's right node,
-      else if (z == z->parent->right) {
-        z = z->parent;
-        // LEFT-ROTATE
-        // ***********
-        left_rotate(t, z);
+      else {
+        if (z == z->parent->right) {
+          z = z->parent;
+          // LEFT-ROTATE
+          left_rotate(t, z);
+        }
+        z->parent->color = RBTREE_BLACK;
+        z->parent->parent->color = RBTREE_RED;
+        right_rotate(t, z->parent->parent);
       }
-      z->parent->color = RBTREE_BLACK;
-      z->parent->parent->color = RBTREE_RED;
-      right_rotate(t, z);
     }
     // if z's parent is grand parent's right node,
     else {
@@ -94,15 +108,16 @@ void insert_fixup(rbtree *t, node_t *z) {
         z = z->parent->parent;
       }
       // if z is parent's left node,
-      else if (z == z->parent->left) {
-        z = z->parent;
-        // LEFT-ROTATE
-        // ***********
-        right_rotate(t, z);
+      else {
+        if (z == z->parent->left) {
+          z = z->parent;
+          // RIGHT-ROTATE
+          right_rotate(t, z);
+        }
+        z->parent->color = RBTREE_BLACK;
+        z->parent->parent->color = RBTREE_RED;
+        left_rotate(t, z->parent->parent);
       }
-      z->parent->color = RBTREE_BLACK;
-      z->parent->parent->color = RBTREE_RED;
-      right_rotate(t, z);
     }
   }
 
@@ -111,12 +126,6 @@ void insert_fixup(rbtree *t, node_t *z) {
 
 node_t *rbtree_insert(rbtree *t, const key_t key) {
   // TODO: implement insert
-  node_t* newNode = (node_t*)calloc(1, sizeof(node_t));
-  newNode->key = key;
-  newNode->color = RBTREE_RED;
-
-  // if root is not NULL
-  // find a node to insert key.
 
   node_t *y = t->nil;
   node_t *x = t->root;
@@ -130,67 +139,23 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
       x = x->right;
   }
 
-  // p is null
-  newNode->parent = y;
+  node_t* newNode = (node_t*)calloc(1, sizeof(node_t));
 
-  if (y == t->nil)
+  newNode->parent = y;
+  newNode->color = RBTREE_RED;
+
+  if (y == t->nil) {
     t->root = newNode;
-  else if (newNode->key < y->key)
+    newNode->color = RBTREE_BLACK;
+  }
+  else if (key < y->key)
     y->left = newNode;
   else
     y->right = newNode;
   
-  newNode->parent = t->nil;
-  newNode->left = t->nil;
-  newNode->right = t->nil;
-
-  insert_fixup(t, newNode);
-
-  return t->root;
-}
-
-node_t *rbtree_insert_wasMine(rbtree *t, const key_t key) {
-  // TODO: implement insert
-  node_t* newNode = (node_t*)calloc(1, sizeof(node_t));
   newNode->key = key;
-  newNode->color = RBTREE_RED;
-  newNode->parent = t->nil;
   newNode->left = t->nil;
   newNode->right = t->nil;
-
-  // if root is NULL
-  if (t->root == t->nil) {
-    t->root = newNode;
-    newNode->color = RBTREE_BLACK;
-    newNode->parent = t->nil;
-    newNode->left = t->nil;
-    newNode->right = t->nil;
-  } else {
-    // if root is not NULL
-    // find a node to insert key.
-
-    node_t *y = t->nil;
-    node_t *x = t->root;
-
-    while (x != t->nil)
-    {
-      y = x;
-      if (key < x->key)       // to right subtree
-        x = x->left;
-      else                     // to left subtree
-        x = x->right;
-    }
-
-    // p is null
-    newNode->parent = y;
-
-    if (y == t->nil)
-      t->root = newNode;
-    else if (newNode->key < y->key)
-      y->left = newNode;
-    else
-      y->right = newNode;
-  }
 
   insert_fixup(t, newNode);
 
@@ -199,22 +164,29 @@ node_t *rbtree_insert_wasMine(rbtree *t, const key_t key) {
 
 node_t *rbtree_find(const rbtree *t, const key_t key) {
   // TODO: implement find
-  if (t->root == t->nil) return t->nil;
+  if (t->root == t->nil) return NULL;
+  printf("to find : %d \n", key);
   
   node_t *p = t->root;
-
+  // printf("==== find in ====\n");
   while (p != t->nil)
   {
-    if (p->key < key)
-      p = p->right;
-    else if (p->key > key)
-      p = p->left;
-    else
+    printf("current key : %d\n", p->key);
+
+    if (p->key == key)
       break;
+    else if (p->key < key)
+      {p = p->right; printf("heading to right\n");}
+    else
+      {p = p->left; printf("heading to left\n");}
+  }
+
+  // printf("==== find out ====\n");
+  if (p == t->nil) {
+    p = NULL;
+    printf("nullify \n");
   }
   
-  printf("%d \n", p->key);
-
   return p;
 }
 
@@ -230,6 +202,7 @@ node_t *rbtree_max(const rbtree *t) {
 
 // u is to delete, v is where to delete
 void transplant(rbtree *t, node_t *u, node_t *v) {
+  printf("==== transplant in ====\n");
   if (u->parent == t->nil)
     t->root = v;
   else if (u == u->parent->left)
@@ -238,19 +211,23 @@ void transplant(rbtree *t, node_t *u, node_t *v) {
     u->parent->right = v;
     
   v->parent = u->parent;
+  printf("%d ,,\n", u->key);
   free(u);
+  printf("==== transplant out ====\n");
 }
 
 // successor
 node_t* tree_minimum(rbtree *t, node_t *z) {
+  printf("==== tree minimum ====\n");
   node_t *p = z;
-  while (p != t->nil)
+  while (p->left != t->nil)
     p = p->left;
 
   return p;
 }
 
 void delete_fixup(rbtree *t, node_t *x) {
+  printf("==== fixup in ====\n");
   node_t *w;
   while (x != t->root && x->color == RBTREE_BLACK)
   {
@@ -317,6 +294,7 @@ int rbtree_erase(rbtree *t, node_t *z) {
   // y is node that might violate the rb-tree rules.
   node_t *y = z, *x;
   color_t y_original_color = y->color;
+  printf("==== init erase ==== \n");
 
   // if node z has only one child,
   if (z->left == t->nil) {
@@ -327,8 +305,9 @@ int rbtree_erase(rbtree *t, node_t *z) {
     x = z->left;
     transplant(t, z, z->left);
   }
-  // if node z has both child,
+  // if node z has two child,
   else {
+    y = tree_minimum(t, z->right);
     y_original_color = y->color;
     x = y->right;
     
@@ -336,22 +315,15 @@ int rbtree_erase(rbtree *t, node_t *z) {
     if (y->parent == z)
       x->parent = y;
     else {
-      y = tree_minimum(t, z->right);
-      y_original_color = y->color;
-      x = y->right;
-
-      if (y->parent == z)
-        x->parent = y;
-      else {
-        transplant(t, y, y->right);
-        y->right = z->right;
-        y->right->parent = y;
-      }
-      transplant(t, z, y);
-      y->left = z->left;
-      y->left->parent = y;
-      y->color = z->color;
+      transplant(t, y, y->right);
+      y->right = z->right;
+      y->right->parent = y;
     }
+    
+    transplant(t, z, y);
+    y->left = z->left;
+    y->left->parent = y;
+    y->color = z->color;
   }
 
   if (y_original_color == RBTREE_BLACK)

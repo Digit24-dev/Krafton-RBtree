@@ -6,6 +6,8 @@
 
 #define SENTINEL
 
+void postOrder(rbtree *t, node_t *cur);
+
 // new_rbtree should return rbtree struct with null root node
 void test_init(void) {
   rbtree *t = new_rbtree();
@@ -49,11 +51,8 @@ void test_find_single(const key_t key, const key_t wrong_key) {
   assert(q == p);
 
   q = rbtree_find(t, wrong_key);
-#ifdef SENTINEL
-  assert(q == t->nil);
-#else
   assert(q == NULL);
-#endif
+
   delete_rbtree(t);
 }
 
@@ -77,6 +76,7 @@ void test_erase_root(const key_t key) {
 
 static void insert_arr(rbtree *t, const key_t *arr, const size_t n) {
   for (size_t i = 0; i < n; i++) {
+    printf("=== %d === \n", arr[i]);
     rbtree_insert(t, arr[i]);
   }
 }
@@ -319,13 +319,21 @@ void test_find_erase(rbtree *t, const key_t *arr, const size_t n) {
     node_t *p = rbtree_insert(t, arr[i]);
     assert(p != NULL);
   }
+  printf("==== array insertion finished =====\n");
+  
+  postOrder(t, t->root);
+  
+  printf("==== init find =====\n");
 
   for (int i = 0; i < n; i++) {
+    printf("==== finding %d ==== \n", arr[i]);
     node_t *p = rbtree_find(t, arr[i]);
     // printf("arr[%d] = %d\n", i, arr[i]);
+    // if (p == NULL) printf(" ========================= RUN =========================\n");
     assert(p != NULL);
     assert(p->key == arr[i]);
     rbtree_erase(t, p);
+    postOrder(t, t->root);
   }
 
   for (int i = 0; i < n; i++) {
@@ -353,6 +361,7 @@ void test_find_erase_fixed() {
   rbtree *t = new_rbtree();
   assert(t != NULL);
   
+  printf("==== init test_find_erase ==== \n");
   test_find_erase(t, arr, n);
   printf("==== erase success ==== \n");
   delete_rbtree(t);
@@ -390,7 +399,7 @@ void myTest(){
   printf("========= my Test init =========== \n");
   rbtree *t = new_rbtree();
   printf("========= before insertion post Order init =========== \n");
-  postOrder(t, t->root);
+  // postOrder(t, t->root);
   
   insert_arr(t, arr, n);
   printf("========= after insertion post Order init =========== \n");
@@ -401,7 +410,7 @@ void myTest(){
 int main(void) {
   test_init();
   test_insert_single(1024);
-  myTest();
+  // myTest();
   test_find_single(512, 1024);
   test_erase_root(128);
   test_find_erase_fixed();
