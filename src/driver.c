@@ -319,18 +319,10 @@ void test_find_erase(rbtree *t, const key_t *arr, const size_t n) {
     node_t *p = rbtree_insert(t, arr[i]);
     assert(p != NULL);
   }
-  printf("==== array insertion finished =====\n");
-  
-  postOrder(t, t->root);
-  
-  printf("==== init find =====\n");
 
   for (int i = 0; i < n; i++) {
-    printf("==== finding %d ==== \n", arr[i]);
     node_t *p = rbtree_find(t, arr[i]);
-    // printf("\n %d \n", p->key);
     // printf("arr[%d] = %d\n", i, arr[i]);
-    if (p == NULL) printf(" ========================= RUN =========================\n");
     assert(p != NULL);
     assert(p->key == arr[i]);
     rbtree_erase(t, p);
@@ -389,24 +381,8 @@ void postOrder(rbtree *t, node_t *cur) {
   
   postOrder(t, cur->left );
   postOrder(t, cur->right);
-  printf("%d ", cur->key );
+  printf("%d:%d ", cur->color, cur->key );
 }
-
-// void test_find_erase_fixed() {
-//   const key_t arr[] = {10, 5, 8, 34, 67, 23, 156, 24, 2, 12, 24, 36, 990, 25};
-//   const size_t n = sizeof(arr) / sizeof(arr[0]);
-//   rbtree *t = new_rbtree();
-//   assert(t != NULL);
-  
-//   for (size_t i = 0; i < n; i++)
-//   {
-//     rbtree_insert(t, arr[i]);
-//   }
-
-// //   test_find_erase(t, arr, n);
-// //   printf("==== erase success ==== \n");
-// //   delete_rbtree(t);
-// }
 
 int main(int argc, char *argv[]) {
     
@@ -418,9 +394,9 @@ int main(int argc, char *argv[]) {
   test_find_erase_fixed();
   // test_minmax_suite();
   // test_to_array_suite();
-  // test_distinct_values();
-  // test_duplicate_values();
+  test_distinct_values();
+  test_duplicate_values();
   // test_multi_instance();
-  // test_find_erase_rand(10000, 17);
+  test_find_erase_rand(10000, 17);
   printf("Passed all tests!\n");
 }

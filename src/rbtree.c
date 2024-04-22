@@ -1,7 +1,8 @@
 #include "rbtree.h"
-#include <assert.h>
+
 #include <stdlib.h>
 #include <stdio.h>
+#include "stack.h"
 
 rbtree *new_rbtree(void) {
   rbtree *p = (rbtree *)calloc(1, sizeof(rbtree));
@@ -12,9 +13,18 @@ rbtree *new_rbtree(void) {
   p->nil->left = p->nil->right;
   p->nil->right = p->nil->left;
 
+#ifdef __USE_STACK__  
+  init_stack();
+#endif
+
   return p;
 }
 
+#ifdef __USE_STACK__
+void delete_rbtree_using_stack(rbtree *t) {
+  
+}
+#else
 void postOrderDeletion(rbtree *t, node_t *cur) {
   if (cur == t->nil)
     return;
@@ -23,10 +33,17 @@ void postOrderDeletion(rbtree *t, node_t *cur) {
   postOrderDeletion(t, cur->right);
   free(cur);
 }
+#endif
 
 void delete_rbtree(rbtree *t) {
   // TODO: reclaim the tree nodes's memory
+
+#ifdef __USE_STACK__
+
+#else
   postOrderDeletion(t, t->root);
+#endif
+
   free(t->nil);
   free(t);
 }
@@ -35,7 +52,7 @@ void left_rotate(rbtree *t, node_t *x) {
   node_t *y = x->right;
   
   x->right = y->left;
-  if (x->right != t->nil) 
+  if (y->left != t->nil)
     y->left->parent = x;
 
   y->parent = x->parent;
@@ -165,26 +182,21 @@ node_t *rbtree_insert(rbtree *t, const key_t key) {
 node_t *rbtree_find(const rbtree *t, const key_t key) {
   // TODO: implement find
   if (t->root == t->nil) return NULL;
-  printf("to find : %d \n", key);
   
   node_t *p = t->root;
-  // printf("==== find in ====\n");
+  
   while (p != t->nil)
   {
-    printf("current key : %d\n", p->key);
-
     if (p->key == key)
       break;
     else if (p->key < key)
-      {p = p->right; printf("heading to right\n");}
+      {p = p->right;}
     else
-      {p = p->left; printf("heading to left\n");}
+      {p = p->left;}
   }
 
-  // printf("==== find out ====\n");
   if (p == t->nil) {
     p = NULL;
-    printf("nullify \n");
   }
   
   return p;
@@ -192,17 +204,24 @@ node_t *rbtree_find(const rbtree *t, const key_t key) {
 
 node_t *rbtree_min(const rbtree *t) {
   // TODO: implement find
-  return t->root;
+  node_t *p = t->root;
+  while (p->left != t->nil)
+    p = p->left;
+  
+  return p;
 }
 
 node_t *rbtree_max(const rbtree *t) {
   // TODO: implement find
-  return t->root;
+  node_t *p = t->root;
+  while(p->right != t->nil)
+    p = p->right;
+
+  return p;
 }
 
 // u is to delete, v is where to delete
 void transplant(rbtree *t, node_t *u, node_t *v) {
-  printf("==== transplant in ====\n");
   if (u->parent == t->nil)
     t->root = v;
   else if (u == u->parent->left)
@@ -211,14 +230,11 @@ void transplant(rbtree *t, node_t *u, node_t *v) {
     u->parent->right = v;
     
   v->parent = u->parent;
-  printf("%d ,,\n", u->key);
-  free(u);
-  printf("==== transplant out ====\n");
 }
 
 // successor
 node_t* tree_minimum(rbtree *t, node_t *z) {
-  printf("==== tree minimum ====\n");
+  if (z == t->nil) return z;
   node_t *p = z;
   while (p->left != t->nil)
     p = p->left;
@@ -227,7 +243,6 @@ node_t* tree_minimum(rbtree *t, node_t *z) {
 }
 
 void delete_fixup(rbtree *t, node_t *x) {
-  printf("==== fixup in ====\n");
   node_t *w;
   while (x != t->root && x->color == RBTREE_BLACK)
   {
@@ -245,18 +260,19 @@ void delete_fixup(rbtree *t, node_t *x) {
         w->color = RBTREE_RED;
         x = x->parent;
       }
-      else if (w->right->color == RBTREE_BLACK) {
-        w->left->color = RBTREE_BLACK;
-        w->color = RBTREE_RED;
-        right_rotate(t, w);
-        w = x->parent->right;
+      else {
+        if (w->right->color == RBTREE_BLACK) {
+          w->left->color = RBTREE_BLACK;
+          w->color = RBTREE_RED;
+          right_rotate(t, w);
+          w = x->parent->right;
+        }
+        w->color = x->parent->color;
+        x->parent->color = RBTREE_BLACK;
+        w->right->color = RBTREE_BLACK;
+        left_rotate(t, x->parent);
+        x = t->root;
       }
-
-      w->color = x->parent->color;
-      x->parent->color = RBTREE_BLACK;
-      w->right->color = RBTREE_BLACK;
-      left_rotate(t, x->parent);
-      x = t->root;
     }
     // if x is parent's right child
     else {
@@ -272,18 +288,19 @@ void delete_fixup(rbtree *t, node_t *x) {
         w->color = RBTREE_RED;
         x = x->parent;
       }
-      else if (w->left->color == RBTREE_BLACK) {
-        w->right->color = RBTREE_BLACK;
-        w->color = RBTREE_RED;
-        left_rotate(t, w);
-        w = x->parent->left;
+      else {
+        if (w->left->color == RBTREE_BLACK) {
+          w->right->color = RBTREE_BLACK;
+          w->color = RBTREE_RED;
+          left_rotate(t, w);
+          w = x->parent->left;
+        }
+        w->color = x->parent->color;
+        x->parent->color = RBTREE_BLACK;
+        w->left->color = RBTREE_BLACK;
+        right_rotate(t, x->parent);
+        x = t->root;
       }
-
-      w->color = x->parent->color;
-      x->parent->color = RBTREE_BLACK;
-      w->left->color = RBTREE_BLACK;
-      right_rotate(t, x->parent);
-      x = t->root;
     }
   }
   x->color = RBTREE_BLACK;
@@ -294,7 +311,6 @@ int rbtree_erase(rbtree *t, node_t *z) {
   // y is node that might violate the rb-tree rules.
   node_t *y = z, *x;
   color_t y_original_color = y->color;
-  printf("==== init erase ==== \n");
 
   // if node z has only one child,
   if (z->left == t->nil) {
@@ -319,7 +335,7 @@ int rbtree_erase(rbtree *t, node_t *z) {
       y->right = z->right;
       y->right->parent = y;
     }
-    
+
     transplant(t, z, y);
     y->left = z->left;
     y->left->parent = y;
@@ -329,10 +345,31 @@ int rbtree_erase(rbtree *t, node_t *z) {
   if (y_original_color == RBTREE_BLACK)
     delete_fixup(t, x);
 
+  free(z);
   return 0;
 }
 
+#ifdef __USE_STACK__
+
+#else
+void preOrderTraversal(const rbtree *t, node_t *p, key_t *arr, size_t *idx) {
+  if (p == t->nil) return;  // O(logN + 1) vs two more compare instructions?
+
+  preOrderTraversal(t, p->left, arr, idx);
+  arr[(*idx)++] = p->key;
+  preOrderTraversal(t, p->right, arr, idx);
+}
+#endif
+
 int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
   // TODO: implement to_array
+  size_t idx = 0;
+  
+#ifdef __USE_STACK__
+
+#else
+  preOrderTraversal(t, t->root, arr, &idx);
+#endif
+
   return 0;
 }
