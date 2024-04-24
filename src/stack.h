@@ -8,7 +8,6 @@
 
 typedef struct _node
 {
-    // int item;
     node_t item;
     struct _node *next;
 } treeNode;
@@ -29,6 +28,7 @@ treeNode *pop(STACK *s);
 treeNode *peek(STACK *s);
 int isEmpty(STACK *s);
 STACK* init_stack();
-void delete_tree(STACK *st);
+// void delete_tree(STACK *st);
+void postOrderTraversal(rbtree *t);
 
 #endif  // _STACK_H_
