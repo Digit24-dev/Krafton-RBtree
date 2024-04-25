@@ -2,7 +2,14 @@
 
 #include <stdlib.h>
 #include <stdio.h>
-#include "stack.h"
+// #include "stack.h"
+
+// #define SUCCESSOR // not define for PREDECESSOR 
+
+#ifdef __USE_STACK__
+// if use STACK, allocate one static STACK pointer;
+extern static STACK *stack;
+#endif
 
 rbtree *new_rbtree(void) {
   rbtree *p = (rbtree *)calloc(1, sizeof(rbtree));
@@ -13,8 +20,8 @@ rbtree *new_rbtree(void) {
   p->nil->left = p->nil->right;
   p->nil->right = p->nil->left;
 
-#ifdef __USE_STACK__  
-  init_stack();
+#ifdef __USE_STACK__
+  stack = init_stack();
 #endif
 
   return p;
@@ -22,7 +29,9 @@ rbtree *new_rbtree(void) {
 
 #ifdef __USE_STACK__
 void delete_rbtree_using_stack(rbtree *t) {
-  
+  delete_tree(t);
+  free(t->nil);
+  free(t);
 }
 #else
 void postOrderDeletion(rbtree *t, node_t *cur) {
@@ -39,7 +48,7 @@ void delete_rbtree(rbtree *t) {
   // TODO: reclaim the tree nodes's memory
 
 #ifdef __USE_STACK__
-
+  delete_rbtree_using_stack(t);
 #else
   postOrderDeletion(t, t->root);
 #endif
@@ -195,9 +204,8 @@ node_t *rbtree_find(const rbtree *t, const key_t key) {
       {p = p->left;}
   }
 
-  if (p == t->nil) {
+  if (p == t->nil)
     p = NULL;
-  }
   
   return p;
 }
@@ -230,6 +238,16 @@ void transplant(rbtree *t, node_t *u, node_t *v) {
     u->parent->right = v;
     
   v->parent = u->parent;
+}
+
+// predecssor
+node_t* tree_maximum(rbtree *t, node_t *z) {
+  if (z == t->nil) return z;
+  node_t *p = z;
+  while (p->right != t->nil)
+    p = p->right;
+  
+  return p;
 }
 
 // successor
@@ -308,7 +326,7 @@ void delete_fixup(rbtree *t, node_t *x) {
 
 int rbtree_erase(rbtree *t, node_t *z) {
   // TODO: implement erase
-  // y is node that might violate the rb-tree rules.
+  // y is a node that might violate the rb-tree rules.
   node_t *y = z, *x;
   color_t y_original_color = y->color;
 
@@ -323,10 +341,13 @@ int rbtree_erase(rbtree *t, node_t *z) {
   }
   // if node z has two child,
   else {
-    y = tree_minimum(t, z->right);
-    y_original_color = y->color;
-    x = y->right;
     
+#ifdef SUCCESSOR
+    y = tree_minimum(t, z->right);
+    x = y->right;
+
+    y_original_color = y->color;
+
     // if z is child of y
     if (y->parent == z)
       x->parent = y;
@@ -340,6 +361,27 @@ int rbtree_erase(rbtree *t, node_t *z) {
     y->left = z->left;
     y->left->parent = y;
     y->color = z->color;
+#else // PREDECESSOR
+    y = tree_maximum(t, z->left);
+    x = y->left;
+
+    y_original_color = y->color;
+
+    // if z is child of y
+    if (y->parent == z)
+      x->parent = y;
+    else {
+      transplant(t, y, y->left);
+      y->left = z->left;
+      y->left->parent = y;
+    }
+
+    transplant(t, z, y);
+    y->right = z->right;
+    y->right->parent = y;
+    y->color = z->color;
+#endif
+
   }
 
   if (y_original_color == RBTREE_BLACK)
@@ -350,25 +392,23 @@ int rbtree_erase(rbtree *t, node_t *z) {
 }
 
 #ifdef __USE_STACK__
-
 #else
-void preOrderTraversal(const rbtree *t, node_t *p, key_t *arr, size_t *idx) {
-  if (p == t->nil) return;  // O(logN + 1) vs two more compare instructions?
+void inOrderTraversal(const rbtree *t, node_t *p, key_t *arr, size_t *idx) {
+  if (p == t->nil) return; // O(logN + 1) vs two more compare instructions?
 
-  preOrderTraversal(t, p->left, arr, idx);
+  inOrderTraversal(t, p->left, arr, idx);
   arr[(*idx)++] = p->key;
-  preOrderTraversal(t, p->right, arr, idx);
+  inOrderTraversal(t, p->right, arr, idx);
 }
 #endif
 
 int rbtree_to_array(const rbtree *t, key_t *arr, const size_t n) {
   // TODO: implement to_array
   size_t idx = 0;
-  
-#ifdef __USE_STACK__
 
+#ifdef __USE_STACK__
 #else
-  preOrderTraversal(t, t->root, arr, &idx);
+  inOrderTraversal(t, t->root, arr, &idx);
 #endif
 
   return 0;

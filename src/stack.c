@@ -1,25 +1,52 @@
-#pragma once
-
 #include <stdlib.h>
 #include <stdio.h>
 #include "stack.h"
 #include "rbtree.h"
 
+/*
+스택을 어디에서 생성할 것인가?
+
+1. malloc으로 할당한 STACK을 가리키는 STACK*를 전역변수로 선언. -> 매개변수로 계속해서 포인터 전달해야 함.
+2. 호출 시마다 새로 생성 -> malloc 계속해서 호출해야 함.
+*/
+
+/// @brief init STACK returning it's pointer.
+/// @return STACK* (pointer)
 STACK* init_stack() {
     STACK *ret = (STACK*)malloc(sizeof(STACK));
     ret->top = NULL;
-
     return ret;
 }
 
-void delete_tree(STACK *st) {
-    if (isEmpty(st)) return;
-    while (!isEmpty(st))
+void postOrderTraversal(rbtree *t) {
+    if (t->root == NULL) return;
+
+    node_t *p = t->root;
+    STACK *stack = (STACK*)malloc(sizeof(STACK));
+    stack->top = NULL;
+
+    int flag = 0;
+
+    while (!flag)
     {
-        pop(st);
+        if (p != NULL) {
+            push(stack, p);
+            p = p->left;
+        }
+        else {
+            if(!isEmpty(stack)) {
+                printf("%d ", peek(stack)->item.key);
+                p = pop(stack);
+                p = p->right;
+            }
+            else {
+                flag = 1;
+            }
+        }
     }
-    free(st);
+    
 }
+
 
 int push(STACK *stack, node_t *node){
     // 0 : malloc error
@@ -42,6 +69,7 @@ int push(STACK *stack, node_t *node){
         temp->next = stack->top;
         stack->top = temp;
     }
+
     return 1;
 }
 

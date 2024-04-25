@@ -16,7 +16,9 @@ void test_init(void) {
 #endif
   delete_rbtree(t);
 }
+int x;
 
+void f();
 // root node should have proper values and pointers
 void test_insert_single(const key_t key) {
   rbtree *t = new_rbtree();
